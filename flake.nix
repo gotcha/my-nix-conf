@@ -3,14 +3,14 @@
 
   inputs = {
     home-manager.url = "github:nix-community/home-manager";
-    my-home.url = "github:gotcha/home-manager";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin.url = "github:LnL7/nix-darwin";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, my-home, home-manager }:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager }:
     let
+      home = ./home.nix;
       configuration = { pkgs, ... }: {
         # List packages installed in system profile. To search by name, run:
         # $ nix-env -qaP | grep wget
@@ -53,7 +53,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.users.gotcha = my-home.home;
+            home-manager.users.gotcha = home;
           }
           {
             users.users.gotcha.home = "/Users/gotcha";
