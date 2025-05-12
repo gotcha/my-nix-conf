@@ -1,4 +1,9 @@
-{ config, pkgs, ... }:
+{
+  inputs,
+  config,
+  pkgs,
+  ...
+}:
 
 {
   # Home Manager needs a bit of information about you and the paths it should
@@ -17,14 +22,22 @@
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
-  home.packages = [
-    pkgs.fd
-    pkgs.just
-    pkgs.gitui
-    pkgs.btop
-    pkgs.fh
-    pkgs.gh
-
+  home.packages = with pkgs; [
+    fd
+    just
+    gitui
+    btop
+    fh
+    gh
+    colima
+    podman
+    uv
+    tig
+    jujutsu
+    lazyjj
+    (writeShellScriptBin "docker" ''
+      ${podman}/bin/podman "$@"
+     '')
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
     # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
@@ -68,7 +81,7 @@
   programs.home-manager.enable = true;
 
   programs.zsh.enable = true;
-  programs.zsh.enableAutosuggestions = true;
+  programs.zsh.autosuggestion.enable = true;
   programs.zsh.syntaxHighlighting.enable = true;
   programs.zsh.history.save = 2000000;
   programs.zsh.history.size = 2000000;
@@ -101,14 +114,14 @@
   programs.git.aliases = {
     co = "checkout";
     st = "status";
-  }; 
-  programs.git.includes = [
-    { path = "~/.config/git/git-credential-oauth.inc"; }
-  ];
+  };
+  programs.git.includes = [ { path = "~/.config/git/git-credential-oauth.inc"; } ];
   programs.git.userName = "Godefroid Chapelle";
   programs.git.userEmail = "gotcha@bubblenet.be";
   programs.git.extraConfig = {
-    pull = { rebase = true; };
+    pull = {
+      rebase = true;
+    };
   };
 
   programs.bat.enable = true;
@@ -116,7 +129,7 @@
     theme = "Solarized (light)";
   };
 
-  programs.bottom.enable = true;
+  programs.jujutsu.enable = true;
 
   programs.direnv.enable = true;
   programs.direnv.enableZshIntegration = true;
@@ -126,8 +139,7 @@
   programs.neovim.defaultEditor = true;
   programs.neovim.vimAlias = true;
   programs.neovim.plugins = with pkgs.vimPlugins; [
-    { plugin = fugitive;
-    }
+    { plugin = fugitive; }
     vinegar
     vimelette
     bufexplorer
@@ -140,10 +152,6 @@
     lualine-nvim
     vim-obsession
     nvim-web-devicons
-    nvim-dap
-    nvim-dap-ui
-    nvim-dap-virtual-text
-    nvim-dap-python
   ];
   programs.neovim.extraConfig = ''
     set autochdir
@@ -156,36 +164,75 @@
     nnoremap <leader>b :BufExplorer<cr>
     " for commentary
     autocmd FileType nix setlocal commentstring=#\ %s
+    if exists("g:neovide")
+      set guifont=Mononoki\ Nerd\ Font:h19
+    endif
   '';
-  programs.neovim.extraLuaConfig = ''
-    require('dapui').setup()
-  '';
+  programs.neovim.extraLuaConfig = '''';
 
   programs.eza.enable = true;
 
-  programs.tmux.enable = true;
-  programs.tmux.baseIndex = 1;
-  programs.tmux.prefix = "C-a";
-  programs.tmux.plugins = with pkgs.tmuxPlugins; [
-    sessionist
-    resurrect
-    continuum
-  ];
-  programs.tmux.extraConfig = ''
-    bind c new-window -c "#{pane_current_path}"
-    bind r source-file ~/.config/tmux/tmux.conf\; display "Reloaded"
+  programs.tmux = { 
+    enable = true;
+    baseIndex = 1;
+    prefix = "C-a";
+    extraConfig = ''
+      bind c new-window -c "#{pane_current_path}"
+      bind r source-file ~/.config/tmux/tmux.conf\; display "Reloaded"
+    '';
+    plugins = with pkgs.tmuxPlugins; [
+      sessionist
+      { 
+        plugin = resurrect;
+        extraConfig = ''
+          set -g @resurrect-processes 'vim nvim'
+          set -g @resurrect-strategy-vim 'session'
+          set -g @resurrect-strategy-nvim 'session'
+        '';
+      }
+      { 
+        plugin = continuum;
+        extraConfig = ''
+          set -g @continuum-restore 'on'
+          set -g @continuum-boot 'on'
+          set -g @continuum-boot-options 'iterm,fullscreen'
+          set -g @continuum-save-interval '5'
+        '';
+      }
+    ];
+  };
 
-    set -g @resurrect-processes 'vim nvim'
-    set -g @resurrect-strategy-vim 'session'
-    set -g @resurrect-strategy-nvim 'session'
-    set -g @continuum-restore 'on'
-    set -g @continuum-boot 'on'
-    set -g @continuum-boot-options 'iterm,fullscreen'
-    set -g @continuum-save-interval '5'
-  '';
+  programs.zellij.enable = true;
+  programs.zellij.enableZshIntegration = false;
+  programs.zellij.settings = {
+    mouse_mode = false;
+    pane_frames = false;
+    keybinds = {
+      tmux = {
+        bind = {
+          _args = [ "Ctrl a" ];
+          Write = 2;
+          SwitchToMode = "Normal";
+        };
+      };
+      shared_except = {
+        _args = [
+          "tmux"
+          "locked"
+        ];
+        bind = {
+          _args = [ "Ctrl a" ];
+          SwitchToMode = "Tmux";
+        };
+      };
+    };
+  };
 
-  programs.mcfly.enable = true;
-  programs.mcfly.enableZshIntegration = true;
+  programs.mcfly.enable = false;
+  programs.mcfly.enableZshIntegration = false;
+
+  programs.atuin.enable = true;
+  programs.atuin.enableZshIntegration = true;
 
   programs.ripgrep.enable = true;
 
@@ -193,21 +240,19 @@
 
   programs.starship.enable = true;
   programs.starship.settings = {
-      add_newline = false;
-      format = pkgs.lib.concatStrings [
-	"$all$directory$character"
-      ];
-      scan_timeout = 10;
-      character = {
-	success_symbol = "[➜](bold green)";
-	error_symbol = "[➜](bold red)";
-      };
-      directory = {
-        truncation_length = 8;
-        truncation_symbol = "…/";
-        truncate_to_repo = false;
-      };
+    add_newline = false;
+    format = pkgs.lib.concatStrings [ "$all$directory$character" ];
+    scan_timeout = 10;
+    character = {
+      success_symbol = "[➜](bold green)";
+      error_symbol = "[➜](bold red)";
     };
+    directory = {
+      truncation_length = 8;
+      truncation_symbol = "…/";
+      truncate_to_repo = false;
+    };
+  };
 
   xdg.enable = true;
   xdg.configFile."git/git-credential-oauth.inc".text = ''
@@ -217,6 +262,14 @@
     helper = oauth
   '';
 
+  programs.firefox = {
+    enable = true;
+#    package = pkgs.firefox-bin;
+    profiles."gotcha" = {
+      isDefault = true;
+      extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [ enhancer-for-youtube ];
+    };
+  };
 }
 
 # TODO
