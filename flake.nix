@@ -11,8 +11,6 @@
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
     nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
-    nix-homebrew.inputs.nix-darwin.follows = "nix-darwin";
-    nix-homebrew.inputs.nixpkgs.follows = "nixpkgs";
 
     homebrew-bundle = {
       url = "github:homebrew/homebrew-bundle";
@@ -29,11 +27,29 @@
       flake = false;
     };
 
+    homebrew-humanlayer = {
+      url = "github:humanlayer/homebrew-humanlayer";
+      flake = false;
+    };
+
     nur.url = "github:nix-community/NUR";
     nur.inputs.nixpkgs.follows = "nixpkgs";
 
-    nixpkgs-firefox-darwin.url = "github:bandithedoge/nixpkgs-firefox-darwin";
-    nixpkgs-firefox-darwin.inputs.nixpkgs.follows = "nixpkgs";
+
+    nix-rosetta-builder = {
+      url = "github:cpick/nix-rosetta-builder";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    devenv = {
+      url = "github:cachix/devenv";
+      inputs.nix.follows = "nix-gotcha";
+      inputs.nixpkgs.follows = "nixpkgs-devenv";
+    };
+
+    nixpkgs-devenv.url = "github:cachix/devenv-nixpkgs/d1c30452ebecfc55185ae6d1c983c09da0c274ff";
+
+    nix-gotcha.url = "github:gotcha/nix/devenv-2.32";
   };
 
   outputs =
@@ -46,8 +62,12 @@
       homebrew-core,
       homebrew-cask,
       homebrew-bundle,
+      homebrew-humanlayer,
       nur,
-      nixpkgs-firefox-darwin,
+      nix-rosetta-builder,
+      devenv,
+      nix-gotcha,
+      nixpkgs-devenv,
     }:
     let
       system = "aarch64-darwin";
@@ -58,14 +78,24 @@
       # $ darwin-rebuild build --flake .#gotcha-M2
       darwinConfigurations."gotcha-M2" = nix-darwin.lib.darwinSystem {
         system = system;
+	specialArgs = { inherit inputs; };
         modules = [
+	  # An existing Linux builder is needed to initially bootstrap `nix-rosetta-builder`.
+	  # If one isn't already available: comment out the `nix-rosetta-builder` module below,
+	  # uncomment this `linux-builder` module, and run `darwin-rebuild switch`:
+	  # { nix.linux-builder.enable = true; }
+	  # Then: uncomment `nix-rosetta-builder`, remove `linux-builder`, and `darwin-rebuild switch`
+	  # a second time. Subsequently, `nix-rosetta-builder` can rebuild itself.
+	  # nix-rosetta-builder.darwinModules.default
+	  # {
+	  #   # see available options in module.nix's `options.nix-rosetta-builder`
+	  #   nix-rosetta-builder.enable = true;
+	  #   nix-rosetta-builder.onDemand = false;
+	  # }
           configuration
           home-manager.darwinModules.home-manager
           {
-                nixpkgs.overlays = [
-                  inputs.nur.overlays.default
-                  inputs.nixpkgs-firefox-darwin.overlay
-                ];
+            home-manager.backupFileExtension = "backup";
             home-manager.useGlobalPkgs = false;
             home-manager.useUserPackages = true;
             home-manager.users.gotcha =
@@ -73,7 +103,6 @@
               {
                 nixpkgs.overlays = [
                   inputs.nur.overlays.default
-                  inputs.nixpkgs-firefox-darwin.overlay
                 ];
                 nixpkgs.config.allowUnfree = true;
                 imports = [ ./home.nix ];
@@ -96,6 +125,7 @@
                 "homebrew/homebrew-bundle" = homebrew-bundle;
                 "homebrew/homebrew-core" = homebrew-core;
                 "homebrew/homebrew-cask" = homebrew-cask;
+                "humanlayer/homebrew-humanlayer" = inputs.homebrew-humanlayer;
               };
 
               mutableTaps = false;

@@ -2,14 +2,38 @@
   inputs,
   config,
   pkgs,
+  lib, 
   ...
 }:
+let 
+  nhswitch = pkgs.writeShellApplication {
+    name = "nhswitch";
+    runtimeInputs = [ pkgs.nh ];
+    text = ''
+      nh darwin switch -H gotcha-M2;
+      tmux set-environment -g PATH "$PATH";
+      '';
+  };
+
+  reloadzsh = pkgs.writeShellApplication {
+    name = "reloadzsh";
+    text = ''
+      unset __NIX_DARWIN_SET_ENVIRONMENT_DONE; unset __HM_SESS_VARS_SOURCED; exec zsh
+      '';
+  };
+in
 
 {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "gotcha";
   home.homeDirectory = pkgs.lib.mkDefault "/Users/gotcha";
+
+  home.sessionVariables = {
+    GHCR_TOKEN = "REMOVED-TOKEN";
+    NH_DARWIN_FLAKE="${config.home.homeDirectory}/.config/nix-darwin";
+  };
+
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -25,19 +49,19 @@
   home.packages = with pkgs; [
     fd
     just
-    gitui
     btop
     fh
     gh
     colima
     podman
-    uv
     tig
     jujutsu
     lazyjj
+    claude-code
     (writeShellScriptBin "docker" ''
       ${podman}/bin/podman "$@"
      '')
+    bitcoind
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
     # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
@@ -50,6 +74,8 @@
     # (pkgs.writeShellScriptBin "my-hello" ''
     #   echo "Hello, ${config.home.username}!"
     # '')
+    nhswitch
+    reloadzsh
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
@@ -81,7 +107,11 @@
   programs.home-manager.enable = true;
 
   programs.zsh.enable = true;
+  programs.zsh.initContent = lib.mkOrder 1500 ''
+      bindkey "^Xa" beginning-of-line
+  '';
   programs.zsh.autosuggestion.enable = true;
+  programs.zsh.dotDir = "${config.xdg.configHome}/zsh";
   programs.zsh.syntaxHighlighting.enable = true;
   programs.zsh.history.save = 2000000;
   programs.zsh.history.size = 2000000;
@@ -111,14 +141,14 @@
   ];
 
   programs.git.enable = true;
-  programs.git.aliases = {
+  programs.git.settings.alias = {
     co = "checkout";
     st = "status";
   };
-  programs.git.includes = [ { path = "~/.config/git/git-credential-oauth.inc"; } ];
-  programs.git.userName = "Godefroid Chapelle";
-  programs.git.userEmail = "gotcha@bubblenet.be";
-  programs.git.extraConfig = {
+  # programs.git.includes = [ { path = "~/.config/git/git-credential-oauth.inc"; } ];
+  programs.git.settings.user.name = "Godefroid Chapelle";
+  programs.git.settings.user.email = "gotcha@bubblenet.be";
+  programs.git.settings = {
     pull = {
       rebase = true;
     };
@@ -139,22 +169,25 @@
   programs.neovim.defaultEditor = true;
   programs.neovim.vimAlias = true;
   programs.neovim.plugins = with pkgs.vimPlugins; [
-    { plugin = fugitive; }
-    vinegar
+    { plugin = vim-fugitive; }
+    vim-vinegar
     vimelette
     bufexplorer
     telescope-nvim
     nvim-treesitter
     nvim-treesitter-textobjects
-    surround
+    vim-surround
     vim-commentary
     gitsigns-nvim
     lualine-nvim
     vim-obsession
     nvim-web-devicons
+    avante-nvim
+    which-key-nvim
   ];
   programs.neovim.extraConfig = ''
     set autochdir
+    set mouse=
     " for devicons
     set encoding=UTF-8
     let mapleader=","
@@ -168,15 +201,25 @@
       set guifont=Mononoki\ Nerd\ Font:h19
     endif
   '';
-  programs.neovim.extraLuaConfig = '''';
+  programs.neovim.initLua = '''';
 
   programs.eza.enable = true;
+  
+  programs.zoxide.enable = true;
+
+  programs.sesh.enable = true;
+  programs.sesh.enableTmuxIntegration = true;
+  programs.sesh.tmuxKey = "z";
+
+  programs.fzf.enable = true;
+  programs.fzf.tmux.enableShellIntegration = true;
 
   programs.tmux = { 
     enable = true;
     baseIndex = 1;
     prefix = "C-a";
     extraConfig = ''
+      bind-key C-a send-key C-a
       bind c new-window -c "#{pane_current_path}"
       bind r source-file ~/.config/tmux/tmux.conf\; display "Reloaded"
     '';
@@ -255,21 +298,12 @@
   };
 
   xdg.enable = true;
-  xdg.configFile."git/git-credential-oauth.inc".text = ''
-    [credential]
-    helper = osxkeychain
-    helper = cache --timeout 7200  # two hours
-    helper = oauth
-  '';
-
-  programs.firefox = {
-    enable = true;
-#    package = pkgs.firefox-bin;
-    profiles."gotcha" = {
-      isDefault = true;
-      extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [ enhancer-for-youtube ];
-    };
-  };
+  # xdg.configFile."git/git-credential-oauth.inc".text = ''
+  #   [credential]
+  #   helper = osxkeychain
+  #   helper = cache --timeout 7200  # two hours
+  #   helper = oauth
+  # '';
 }
 
 # TODO

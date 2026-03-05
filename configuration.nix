@@ -1,17 +1,32 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
+  let
+    pkgs-goose = "obsolete";
+  in
 {
   # List packages installed in system profile. To search by name, run:
   # $ nix-env -qaP | grep wget
   environment.systemPackages = with pkgs; [
     vim
     starship
-    nixfmt-rfc-style
-    devenv
+    nixfmt
+    inputs.devenv.packages.${pkgs.stdenv.system}.devenv
+    nh
   ];
 
-  # Auto upgrade nix package and the daemon service.
-  nix.package = pkgs.nix;
+  environment.variables = {
+  };
 
+  # Auto upgrade nix package and the daemon service.
+  nix.enable = true;
+  nix.package = pkgs.nix;
+  # In flake.nix, add cachix's cache
+nix.settings.substituters = [ "https://devenv.cachix.org" ];
+nix.settings.trusted-public-keys = [ "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=" ];
+
+  ids.gids.nixbld = 350;
+
+  # for rosetta-builder
+  nix.settings.builders-use-substitutes = pkgs.lib.mkForce false;
   # Necessary for using flakes on this system.
   nix.settings.experimental-features = "nix-command flakes";
   nix.settings.trusted-users = [
@@ -32,13 +47,21 @@
   # $ darwin-rebuild changelog
   system.stateVersion = 4;
 
+  system.primaryUser = "gotcha";
+
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
 
+
   homebrew.enable = true;
+  homebrew.caskArgs.no_quarantine = true;
   homebrew.brews = [ ];
+  homebrew.taps = [ 
+  ];
   homebrew.casks = [
+    "google-chrome"
     "thunderbird"
+    "firefox"
     "signal"
     "musescore"
     "whatsapp"
@@ -49,10 +72,17 @@
     "espanso"
     "discord"
     "orbstack"
-    "libreoffice"
+    {
+      name = "libreoffice";
+      greedy = true;
+    }
     "dropbox"
     "vlc"
-    "ollama"
+    "utm"  # virtual machines
+    "nikitabobko/tap/aerospace" # tiling window manager
+    "humanlayer/humanlayer/codelayer"
+    "beamer"
+#    "ollama"
   ];
 
   system.defaults.CustomSystemPreferences = {
@@ -62,7 +92,7 @@
             "org.mozilla.firefox"
             "com.apple.finder"
             "com.googlecode.iterm2"
-            "net.whatsapp.WhatsApp"
+            # "net.whatsapp.WhatsApp"
         ];
     };
   };
@@ -79,22 +109,22 @@
             "Exit Full Screen" = "~^f";
         };
     };
-    "net.whatsapp.WhatsApp" =     {
-        NSUserKeyEquivalents =         {
-            "Enter Full Screen" = "~^f";
-            "Exit Full Screen" = "~^f";
-        };
-    };
+    # "net.whatsapp.WhatsApp" =     {
+    #     NSUserKeyEquivalents =         {
+    #         "Enter Full Screen" = "~^f";
+    #         "Exit Full Screen" = "~^f";
+    #     };
+    # };
     "com.googlecode.iterm2" =     {
         NSUserKeyEquivalents =         {
             "Toggle Full Screen" = "~^f";
         };
     };
   };
-    system.activationScripts.postUserActivation.text = ''
-    # Following line should allow us to avoid a logout/login cycle
-    /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
-  '';
+    # system.activationScripts.postUserActivation.text = ''
+    # # Following line should allow us to avoid a logout/login cycle
+    # /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+  # '';
 }
 
 
