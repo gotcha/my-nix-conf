@@ -43,13 +43,10 @@
 
     devenv = {
       url = "github:cachix/devenv";
-      inputs.nix.follows = "nix-gotcha";
       inputs.nixpkgs.follows = "nixpkgs-devenv";
     };
 
-    nixpkgs-devenv.url = "github:cachix/devenv-nixpkgs/d1c30452ebecfc55185ae6d1c983c09da0c274ff";
-
-    nix-gotcha.url = "github:gotcha/nix/devenv-2.32";
+    nixpkgs-devenv.url = "github:cachix/devenv-nixpkgs/rolling";
   };
 
   outputs =
@@ -66,7 +63,6 @@
       nur,
       nix-rosetta-builder,
       devenv,
-      nix-gotcha,
       nixpkgs-devenv,
     }:
     let
