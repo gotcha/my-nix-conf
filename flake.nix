@@ -32,6 +32,11 @@
       flake = false;
     };
 
+    homebrew-zmx = {
+      url = "github:neurosnap/homebrew-tap";
+      flake = false;
+    };
+
     nur.url = "github:nix-community/NUR";
     nur.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -42,11 +47,31 @@
     };
 
     devenv = {
-      url = "github:cachix/devenv";
+      url = "github:cachix/devenv/v2.4.0";
       inputs.nixpkgs.follows = "nixpkgs-devenv";
     };
 
-    nixpkgs-devenv.url = "github:cachix/devenv-nixpkgs/rolling";
+    # Pinned to the rev that devenv v2.3.1's own flake.lock uses, so the build
+    # matches devenv.cachix.org and substitutes instead of compiling.
+    # Do NOT switch to /rolling: its newer darwin stdenv exports
+    # NIX_ENFORCE_PURITY=1, and devenv-proxy's openssl-sys links impurely
+    # (probes /opt/homebrew), so the build dies with "ld: library not found -lssl".
+    # When bumping the devenv tag, take the rev from that tag's flake.lock.
+    # curl -s https://raw.githubusercontent.com/cachix/devenv/v2.4.0/flake.lock | jq -r '.nodes.nixpkgs.locked.rev'
+    nixpkgs-devenv.url = "github:cachix/devenv-nixpkgs/256551e45f6303e142ab4a98be1bf243feb77dc0";
+
+    nix-index-database.url = "github:nix-community/nix-index-database";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
+
+    maple-cask = {
+      url = "path:/Users/gotcha/co/maple-cask";
+      flake = false;
+    };
+
+    llm-agents.url = "github:numtide/llm-agents.nix";
+
+    llm-agents.inputs.bun2nix.url = "git+https://github.com/nix-community/bun2nix";
+
   };
 
   outputs =
@@ -60,10 +85,14 @@
       homebrew-cask,
       homebrew-bundle,
       homebrew-humanlayer,
+      homebrew-zmx,
       nur,
       nix-rosetta-builder,
       devenv,
       nixpkgs-devenv,
+      nix-index-database,
+      maple-cask,
+      llm-agents,
     }:
     let
       system = "aarch64-darwin";
@@ -94,8 +123,9 @@
             home-manager.backupFileExtension = "backup";
             home-manager.useGlobalPkgs = false;
             home-manager.useUserPackages = true;
+	    home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.users.gotcha =
-              { config, pkgs, ... }:
+              { config, pkgs, inputs, ... }:
               {
                 nixpkgs.overlays = [
                   inputs.nur.overlays.default
@@ -122,11 +152,15 @@
                 "homebrew/homebrew-core" = homebrew-core;
                 "homebrew/homebrew-cask" = homebrew-cask;
                 "humanlayer/homebrew-humanlayer" = inputs.homebrew-humanlayer;
+		"neurosnap/hombrew-tap" = inputs.homebrew-zmx;
+                "local/homebrew-cask" = inputs.maple-cask;
               };
 
               mutableTaps = false;
             };
           }
+	  nix-index-database.darwinModules.nix-index
+          { programs.nix-index-database.comma.enable = true; }
         ];
       };
 

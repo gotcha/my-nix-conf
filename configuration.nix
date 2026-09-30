@@ -37,6 +37,11 @@ nix.settings.trusted-public-keys = [ "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv
     "github.com=REMOVED-TOKEN"
   ];
 
+  launchd.user.agents.set-ulimit = {
+    script = "ulimit -n 65536";
+    serviceConfig.RunAtLoad = true;
+  };
+
   # Create /etc/zshrc that loads the nix-darwin environment.
   programs.zsh.enable = true;
 
@@ -49,15 +54,22 @@ nix.settings.trusted-public-keys = [ "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv
 
   system.primaryUser = "gotcha";
 
+  # Hidden files in Open/Save dialogs (and every app's file panels)
+  system.defaults.NSGlobalDomain.AppleShowAllFiles = true;
+
+  # Hidden files (dotfiles) in Finder itself
+  system.defaults.finder.AppleShowAllFiles = true;
+
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
 
 
   homebrew.enable = true;
-  homebrew.caskArgs.no_quarantine = true;
+  homebrew.caskArgs.no_quarantine = false;
   homebrew.brews = [ ];
   homebrew.taps = [ 
   ];
+  homebrew.onActivation.autoUpdate = true;
   homebrew.casks = [
     "google-chrome"
     "thunderbird"
@@ -79,9 +91,9 @@ nix.settings.trusted-public-keys = [ "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv
     "dropbox"
     "vlc"
     "utm"  # virtual machines
-    "nikitabobko/tap/aerospace" # tiling window manager
-    "humanlayer/humanlayer/codelayer"
     "beamer"
+    "obsidian"
+#    "maple-ai"
 #    "ollama"
   ];
 

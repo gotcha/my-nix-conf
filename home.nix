@@ -21,9 +21,34 @@ let
       unset __NIX_DARWIN_SET_ENVIRONMENT_DONE; unset __HM_SESS_VARS_SOURCED; exec zsh
       '';
   };
+
+  # absolute path to a local zc.buildout checkout (impure but handy),
+  # or a fetchFromGitHub once the branch lands upstream
+  buildoutCheckout = /Users/gotcha/co/buildout-grammar;
+  buildoutNvim = pkgs.stdenv.mkDerivation {
+    pname = "nvim-treesitter-buildout";
+    version = "unstable-2026-09-08";
+    src = buildoutCheckout + /editors/nvim;
+    parserSrc = buildoutCheckout + /tree-sitter-buildout/src;
+    buildPhase = ''
+      runHook preBuild
+      mkdir -p parser
+      cc -O2 -shared -fPIC -o parser/buildout.so \
+        "$parserSrc/parser.c" -I "$parserSrc"
+      runHook postBuild
+    '';
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out
+      cp -r ftdetect ftplugin queries parser $out/
+      runHook postInstall
+    '';
+  };
 in
 
 {
+  imports = [ ./skills.nix ];
+
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "gotcha";
@@ -47,6 +72,7 @@ in
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
+    secretspec
     fd
     just
     btop
@@ -76,6 +102,7 @@ in
     # '')
     nhswitch
     reloadzsh
+    (with inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}; goose-cli)
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
@@ -109,6 +136,7 @@ in
   programs.zsh.enable = true;
   programs.zsh.initContent = lib.mkOrder 1500 ''
       bindkey "^Xa" beginning-of-line
+      eval "$(devenv hook zsh)"
   '';
   programs.zsh.autosuggestion.enable = true;
   programs.zsh.dotDir = "${config.xdg.configHome}/zsh";
@@ -152,6 +180,10 @@ in
     pull = {
       rebase = true;
     };
+    "credential \"https://redcat.communities.buzz.xyz\"" = {
+      helper = "/Applications/Buzz.app/Contents/MacOS/git-credential-nostr";
+      useHttpPath = true;
+    };
   };
 
   programs.bat.enable = true;
@@ -168,6 +200,8 @@ in
   programs.neovim.enable = true;
   programs.neovim.defaultEditor = true;
   programs.neovim.vimAlias = true;
+  programs.neovim.withPython3 = false;
+  programs.neovim.withRuby = false;
   programs.neovim.plugins = with pkgs.vimPlugins; [
     { plugin = vim-fugitive; }
     vim-vinegar
@@ -184,6 +218,7 @@ in
     nvim-web-devicons
     avante-nvim
     which-key-nvim
+    { plugin = buildoutNvim; }
   ];
   programs.neovim.extraConfig = ''
     set autochdir
@@ -212,11 +247,17 @@ in
   programs.sesh.tmuxKey = "z";
 
   programs.fzf.enable = true;
+  programs.fzf.historyWidget.command = "";
   programs.fzf.tmux.enableShellIntegration = true;
 
   programs.tmux = { 
     enable = true;
     baseIndex = 1;
+    # tmux 3.7c
+    package = pkgs.tmux.overrideAttrs (oldAttrs: {
+      buildInputs = builtins.filter (p: p.pname or "" != "jemalloc") oldAttrs.buildInputs;
+      configureFlags = (oldAttrs.configureFlags or []) ++ [ "--disable-jemalloc" ];
+    });
     prefix = "C-a";
     extraConfig = ''
       bind-key C-a send-key C-a
