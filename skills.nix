@@ -67,11 +67,24 @@ let
     name = ".agents/skills/${name}";
     value.source = config.lib.file.mkOutOfStoreSymlink "${root}/${name}";
   };
+  pstackRoot = "${homeDir}/co/poteto-mode-port";
+  # pstack port's non-skill artifacts, per its PORTING.md mapping:
+  # recipes/ and agents/ (delegate sources) land in goose's recipes dir;
+  # hints/pstack-models.md installs as ~/.config/goose/pstack-models.md
+  # (setup-pstack customizes it in place; writes flow into the checkout).
+  gooseLinks = {
+    ".config/goose/recipes/poteto-mode.yaml" = "${pstackRoot}/recipes/poteto-mode.yaml";
+    ".config/goose/recipes/poteto-agent.yaml" = "${pstackRoot}/agents/poteto-agent.yaml";
+    ".config/goose/recipes/comment-sicko.yaml" = "${pstackRoot}/agents/comment-sicko.yaml";
+    ".config/goose/pstack-models.md" = "${pstackRoot}/hints/pstack-models.md";
+  };
 in
 {
   home.file = builtins.listToAttrs (
     builtins.concatLists (
       lib.mapAttrsToList (root: builtins.map (link root)) skillRoots
     )
-  );
+  ) // builtins.mapAttrs (_: src: {
+    source = config.lib.file.mkOutOfStoreSymlink src;
+  }) gooseLinks;
 }
