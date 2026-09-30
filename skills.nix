@@ -68,16 +68,19 @@ let
     value.source = config.lib.file.mkOutOfStoreSymlink "${root}/${name}";
   };
   pstackRoot = "${homeDir}/co/poteto-mode-port";
-  # pstack port's non-skill artifacts, per its PORTING.md mapping:
-  # recipes/ and agents/ (delegate sources) land in goose's recipes dir;
-  # hints/pstack-models.md installs as ~/.config/goose/pstack-models.md
-  # (setup-pstack customizes it in place; writes flow into the checkout).
+  # pstack-models.md is read by the agent via normal file tools: symlink is fine.
   gooseLinks = {
-    ".config/goose/recipes/poteto-mode.yaml" = "${pstackRoot}/recipes/poteto-mode.yaml";
-    ".config/goose/recipes/poteto-agent.yaml" = "${pstackRoot}/agents/poteto-agent.yaml";
-    ".config/goose/recipes/comment-sicko.yaml" = "${pstackRoot}/agents/comment-sicko.yaml";
     ".config/goose/pstack-models.md" = "${pstackRoot}/hints/pstack-models.md";
   };
+  # goose's recipe loader opens the final path component with O_NOFOLLOW
+  # (crates/goose/src/recipe/read_recipe_file_content.rs), so recipes must be
+  # REAL files — symlinks get ELOOP. Copied here on every activation; edits in
+  # the port repo go live at the next nhswitch.
+  recipeFiles = [
+    "${pstackRoot}/recipes/poteto-mode.yaml"
+    "${pstackRoot}/agents/poteto-agent.yaml"
+    "${pstackRoot}/agents/comment-sicko.yaml"
+  ];
 in
 {
   home.file = builtins.listToAttrs (
@@ -87,4 +90,11 @@ in
   ) // builtins.mapAttrs (_: src: {
     source = config.lib.file.mkOutOfStoreSymlink src;
   }) gooseLinks;
+
+  home.activation.pstackRecipes = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    run mkdir -p "$HOME/.config/goose/recipes"
+    ${builtins.concatStringsSep "\n    " (builtins.map (src:
+      ''run cp -f "${src}" "$HOME/.config/goose/recipes/${builtins.baseNameOf src}"''
+    ) recipeFiles)}
+  '';
 }
