@@ -33,9 +33,8 @@ nix.settings.trusted-public-keys = [ "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv
     "root"
     "gotcha"
   ];
-  nix.settings.access-tokens = [
-    "github.com=REMOVED-TOKEN"
-  ];
+  # access-tokens live outside this repo (chmod 600, not committed):
+  nix.extraOptions = "include /Users/gotcha/.config/nix/nix-private.conf";
 
   launchd.user.agents.set-ulimit = {
     script = "ulimit -n 65536";

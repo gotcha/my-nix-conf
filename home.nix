@@ -55,7 +55,7 @@ in
   home.homeDirectory = pkgs.lib.mkDefault "/Users/gotcha";
 
   home.sessionVariables = {
-    GHCR_TOKEN = "REMOVED-TOKEN";
+
     NH_DARWIN_FLAKE="${config.home.homeDirectory}/.config/nix-darwin";
   };
 
@@ -136,6 +136,8 @@ in
   programs.zsh.enable = true;
   programs.zsh.initContent = lib.mkOrder 1500 ''
       bindkey "^Xa" beginning-of-line
+      # private env vars (GHCR_TOKEN, ...) live outside the nix repo
+      [[ -f ~/.config/zsh/private-env ]] && source ~/.config/zsh/private-env
       eval "$(devenv hook zsh)"
   '';
   programs.zsh.autosuggestion.enable = true;
