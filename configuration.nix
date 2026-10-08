@@ -53,6 +53,8 @@ nix.settings.trusted-public-keys = [ "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv
 
   system.primaryUser = "gotcha";
 
+  imports = [ ./voice.nix ];
+
   # Hidden files in Open/Save dialogs (and every app's file panels)
   system.defaults.NSGlobalDomain.AppleShowAllFiles = true;
 

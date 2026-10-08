@@ -2,6 +2,31 @@
 
 Canonical location: `~/.config/nix-darwin/AGENTS.md` in the nix-darwin config repo. home-manager links this file into agents' config dirs (e.g. `~/.config/goose/AGENTS.md`). **Edit only the canonical copy; never edit linked copies.**
 
+## Machine facts
+- This host is `gotcha-M2`: M2 Pro MacBook, aarch64-darwin, macOS 15 Sequoia.
+- The whole machine is managed by THIS flake. Nothing else configures it.
+- Voice: Siri is off by user choice. Dictation is on, english-only (`en_GB`);
+  fr_BE was deliberately removed (no offline support). Voice Control is the
+  hands-free layer; its one-time first-run UI step is documented in
+  `RESEARCH/THIS_MACHINE.md` in the buzz workspace.
+- Buzz orchestration workspace: `~/.buzz` (agent gt-leader home).
+
+## Working on this flake
+- Agents have no passwordless sudo. Finish your branch, verify with
+  `darwin-rebuild build --impure --flake <worktree>` (builds need no root),
+  and hand the user `sudo darwin-rebuild switch --impure --flake <worktree>`
+  to run themselves. Never attempt the switch non-interactively.
+- The `--impure` flag is required: `home.nix` references an absolute path
+  (a local fonts derivation), so pure evaluation fails. This is known and
+  accepted for now, not an error you introduced.
+- A flake only sees git-TRACKED files. The moment you create a new `.nix`
+  file, `git add` it before building, or evaluation fails with
+  "Path ... is not tracked by Git". Staging is enough; no commit needed.
+- New configuration belongs in its own `.nix` module next to the existing
+  ones, imported from `configuration.nix` (system-level) or `home.nix`
+  (user-level) — the way `sayit.nix` and `skills.nix` already hang off
+  `home.nix`.
+
 ## Reporting
 - When asked to write or modify code, report nothing beyond a summary description of the files touched.
 - Only report about the app being worked on when explicitly requested; do not generate such reports unprompted.
