@@ -44,6 +44,22 @@ let
       runHook postInstall
     '';
   };
+  # OpenAI-compatible local proxy into Maple's attested TEE (trymaple.ai),
+  # built from source (proxy/ crate of the Maple monorepo).
+  mapleProxy = pkgs.rustPlatform.buildRustPackage rec {
+    pname = "maple-proxy";
+    version = "0.4.0";
+    src = pkgs.fetchFromGitHub {
+      owner = "MaplePrivacyLabs";
+      repo = "Maple";
+      rev = "0d861839ee8bc4cfbfbf5843a9f5c3379a99a705"; # tag v3.4.1
+      hash = "sha256-Bp3mMLtb7WpKK+PjVCTpGpUtq4SuOKijKbQiCELXD1I=";
+    };
+    sourceRoot = "${src.name}/proxy";
+    cargoHash = "sha256-F/0wnEAy4CGOmVbHzOyD84GlbJ7cQETmoUxMVe87VQU=";
+    # upstream tests need network + enclave attestation
+    doCheck = false;
+  };
 in
 
 {
@@ -88,6 +104,9 @@ in
       ${podman}/bin/podman "$@"
      '')
     bitcoind
+    # iOS dev env (berlin26 hackathon): fast xip downloads for xcodes
+    # (xcodes itself comes from homebrew — nixpkgs 1.6.2 is broken vs Apple's auth)
+    aria2
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
     # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
@@ -130,6 +149,31 @@ in
   #  /etc/profiles/per-user/gotcha/etc/profile.d/hm-session-vars.sh
   #
   # if you don't want to manage your shell through Home Manager.
+  # Replaces the ad-hoc ~/Library/LaunchAgents/ai.trymaple.proxy.plist.
+  # Port 8800: 8080 stays reserved for local Zope work.
+  launchd.enable = true;
+  launchd.agents.maple-proxy = {
+    enable = true;
+    config = {
+      Label = "ai.trymaple.proxy";
+      ProgramArguments = [
+        "${mapleProxy}/bin/maple-proxy"
+        "--host" "127.0.0.1"
+        "--port" "8800"
+        "--backend-url" "https://enclave.trymaple.ai"
+        "--pcr0-environment" "production"
+      ];
+      EnvironmentVariables = {
+        MAPLE_REQUEST_TIMEOUT_SECS = "300";
+        MAPLE_STREAM_IDLE_TIMEOUT_SECS = "300";
+      };
+      RunAtLoad = true;
+      KeepAlive = true;
+      StandardOutPath = "/Users/gotcha/.local/state/maple-proxy.out.log";
+      StandardErrorPath = "/Users/gotcha/.local/state/maple-proxy.err.log";
+    };
+  };
+
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 

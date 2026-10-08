@@ -65,7 +65,7 @@ nix.settings.trusted-public-keys = [ "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv
 
   homebrew.enable = true;
   homebrew.caskArgs.no_quarantine = false;
-  homebrew.brews = [ ];
+  homebrew.brews = [ ]; # xcodes was here, but 2.1.0 requires Sequoia+; re-add after the macOS 26.6 upgrade (Phase 2)
   homebrew.taps = [ 
   ];
   homebrew.onActivation.autoUpdate = true;
