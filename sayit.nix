@@ -31,6 +31,27 @@ let
       cp -R "Say It.app" $out/Applications/
       mkdir -p $out/skill
       cp "$(find "Say It.app" -path '*SayItCore.framework*' -name SKILL.md | head -n1)" $out/skill/SKILL.md
+      # Owner rule: voice is never the only channel. Every utterance must also
+      # exist as written text, unless the utterance is itself the terse spoken
+      # capsule of a longer written message posted in the same turn.
+      cat >> $out/skill/SKILL.md <<'MD'
+
+## Non-negotiable: every utterance also appears on screen
+
+Voice is never the only place an utterance lives. Whenever you launch a
+`sayit` call, its content must also appear as written text in the
+conversation, posted in the same step as the utterance.
+
+One exception: when the utterance is the terse spoken capsule of a longer
+written message you are posting in the same turn, that written message
+already carries the content — do not post a duplicate line for the capsule.
+Everything else (progress updates, status changes, decisions, errors) gets
+its own short written line.
+
+Speech is ephemeral and easy to miss; the written channel is the durable
+record the listener can scroll back to. Paired output is the default, not an
+extra step.
+MD
       runHook postInstall
     '';
   });
