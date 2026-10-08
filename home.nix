@@ -60,6 +60,20 @@ let
     # upstream tests need network + enclave attestation
     doCheck = false;
   };
+
+  # ast-grep MCP server (upstream ast-grep/ast-grep-mcp, python). Upstream pins
+  # mcp==2.1.0 but nixpkgs ships 1.x, so run via uvx with a pinned git rev
+  # (uvx caches the env). AST_GREP_PATH points at the nix store binary so the
+  # server works no matter what PATH the MCP client hands it.
+  astGrepMcp = pkgs.writeShellApplication {
+    name = "ast-grep-mcp-server";
+    runtimeInputs = [ pkgs.uv pkgs.git pkgs.ast-grep ];
+    text = ''
+      export AST_GREP_PATH="${pkgs.ast-grep}/bin/ast-grep"
+      exec uvx --from "git+https://github.com/ast-grep/ast-grep-mcp@149e20d47bb7125fb0c1451feea2f48a98742034" ast-grep-server "$@"
+    '';
+  };
+
 in
 
 {
@@ -107,6 +121,8 @@ in
     # iOS dev env (berlin26 hackathon): fast xip downloads for xcodes
     # (xcodes itself comes from homebrew — nixpkgs 1.6.2 is broken vs Apple's auth)
     aria2
+    ast-grep
+    astGrepMcp
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
     # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
