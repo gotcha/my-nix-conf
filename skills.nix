@@ -71,6 +71,9 @@ let
   # pstack-models.md is read by the agent via normal file tools: symlink is fine.
   gooseLinks = {
     ".config/goose/pstack-models.md" = "${pstackRoot}/hints/pstack-models.md";
+    # AGENTS.md is a goose default context filename, read natively from the
+    # global dir. Live path (no store copy): edits apply without a rebuild.
+    ".config/goose/AGENTS.md" = "${homeDir}/.config/nix-darwin/AGENTS.md";
   };
   # goose's recipe loader opens the final path component with O_NOFOLLOW
   # (crates/goose/src/recipe/read_recipe_file_content.rs), so recipes must be
