@@ -74,8 +74,16 @@ in
   home.activation.sayitApp = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     stamp="/Applications/.sayit.nix-store-path"
     if [[ ! -d "${appInstallPath}" || "$(cat "$stamp" 2>/dev/null)" != "${sayitApp}" ]]; then
+      # ditto preserves the nix store's read-only modes (dirs are r-xr-xr-x);
+      # rm -rf then dies "Permission denied" inside non-writable directories.
+      # Grant owner write before removing, and keep the fresh copy owner-
+      # writable so future activations can remove it the same way.
+      if [[ -d "${appInstallPath}" ]]; then
+        run chmod -R u+w "${appInstallPath}" || true
+      fi
       run rm -rf "${appInstallPath}"
       run /usr/bin/ditto "${sayitApp}/Applications/Say It.app" "${appInstallPath}"
+      run chmod -R u+w "${appInstallPath}"
       run /usr/bin/env sh -c "printf %s '${sayitApp}' > '$stamp'"
     fi
   '';
