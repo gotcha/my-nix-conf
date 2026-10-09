@@ -77,7 +77,7 @@ let
 in
 
 {
-  imports = [ ./skills.nix ./sayit.nix ];
+  imports = [ ./skills.nix ./sayit.nix ./agentaps.nix ];
 
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
