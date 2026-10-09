@@ -31,26 +31,26 @@ let
       cp -R "Say It.app" $out/Applications/
       mkdir -p $out/skill
       cp "$(find "Say It.app" -path '*SayItCore.framework*' -name SKILL.md | head -n1)" $out/skill/SKILL.md
-      # Owner rule: voice is never the only channel. Every utterance must also
-      # exist as written text, unless the utterance is itself the terse spoken
-      # capsule of a longer written message posted in the same turn.
+      # Owner rule: voice is never the only channel. Written text comes FIRST:
+      # post before you speak, unless the utterance is the terse spoken capsule
+      # of a longer written message — then post that message first, speak after.
       cat >> $out/skill/SKILL.md <<'MD'
 
-## Non-negotiable: every utterance also appears on screen
+## Non-negotiable: written first, then spoken
 
-Voice is never the only place an utterance lives. Whenever you launch a
-`sayit` call, its content must also appear as written text in the
-conversation, posted in the same step as the utterance.
+Voice is never the only place an utterance lives, and order matters. Post
+the written text FIRST, then launch the `sayit` call — every time. The
+listener must never hear words that are not already on screen.
 
-One exception: when the utterance is the terse spoken capsule of a longer
-written message you are posting in the same turn, that written message
-already carries the content — do not post a duplicate line for the capsule.
+When the utterance is the terse spoken capsule of a longer written message:
+post the full written message first, then speak the capsule. Do not post a
+duplicate line for the capsule — the written message already carries it.
 Everything else (progress updates, status changes, decisions, errors) gets
-its own short written line.
+its own short written line, posted before it is spoken.
 
 Speech is ephemeral and easy to miss; the written channel is the durable
-record the listener can scroll back to. Paired output is the default, not an
-extra step.
+record the listener can scroll back to. Written-then-spoken is the default,
+not an extra step.
 MD
       runHook postInstall
     '';
